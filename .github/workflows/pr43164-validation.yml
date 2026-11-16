@@ -1,0 +1,61 @@
+name: PR 43164 isolated platform validation
+on:
+  push:
+    branches: [validation/43164]
+permissions:
+  contents: read
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    env:
+      ORCA_BACKGROUND_LAUNCH: '1'
+      ROLLDOWN_THREADS: '2'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Preserve isolated smoke harness and select exact PR commit
+        run: |
+          cp .github/scripts/pr43164-artifact-smoke.mjs "$RUNNER_TEMP/pr43164-artifact-smoke.mjs"
+          git checkout --detach c755a1d37134d78b7cae31e4aea03564b296d976
+          git rev-parse HEAD
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.14.0
+      - name: Install pinned dependencies in disposable runner
+        run: |
+          pnpm install --frozen-lockfile --ignore-scripts
+          node node_modules/bun/install.js
+      - name: Targeted runtime and packaging regressions
+        run: >-
+          pnpm test
+          src/main/runtime/workspaces/catalog/repo-worktree-admin-fingerprint-retirement.test.ts
+          src/main/runtime/workspaces/catalog/repo-worktree-admin-fingerprint-isolation.test.ts
+          src/main/workspaces/catalog/repo-worktree-catalog-owner.test.ts
+          src/main/worker-threads/worker-thread-request-queue.test.ts
+          config/scripts/desktop-distribution/runtime-verification/electron-builder-config.test.mjs
+          config/scripts/desktop-distribution/runtime-verification/electron-builder-runtime-resources.test.mjs
+          --maxWorkers=2
+      - name: Typecheck
+        run: pnpm tc:node
+      - name: Build real desktop main entries
+        env:
+          ORCA_ELECTRON_VITE_TARGET: main
+        run: pnpm run build:electron-vite --config config/electron-vite-target.config.cts
+      - name: Install test-only Electron executable
+        run: node node_modules/electron/install.js
+      - name: ASAR child IPC under Node and Electron Node mode
+        run: node "$RUNNER_TEMP/pr43164-artifact-smoke.mjs"
