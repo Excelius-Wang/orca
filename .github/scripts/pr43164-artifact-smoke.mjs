@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module'
-import { join, dirname, resolve } from 'node:path'
+import { join, dirname, resolve, sep } from 'node:path'
 import { mkdirSync, copyFileSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { once } from 'node:events'
 import assert from 'node:assert/strict'
@@ -21,11 +21,11 @@ function stageFile(relative){
   const child=join(dirname(relative),match[1]);stageFile(child.endsWith('.js')?child:child+'.js')
  }
 }
-const relative='out/main/repo-worktree-admin-fingerprint-process-entry.js'
+const relative=join('out','main','repo-worktree-admin-fingerprint-process-entry.js')
 stageFile(relative)
 writeFileSync(join(stage,'package.json'),'{"name":"orca-fingerprint-artifact-smoke","version":"1.0.0"}')
 const archive=join(scratch,'app.asar')
-await createPackageWithOptions(stage,archive,{unpack:`{${config.asarUnpack.map(pattern=>join(stage,pattern)).join(',')}}`})
+await createPackageWithOptions(stage,archive,{unpack:`{${config.asarUnpack.map(pattern=>join(stage,pattern).split(sep).join('/')).join(',')}}`})
 assert.equal(statFile(archive,relative).unpacked,true)
 const childPath=join(archive+'.unpacked',relative)
 assert.ok(existsSync(childPath))
