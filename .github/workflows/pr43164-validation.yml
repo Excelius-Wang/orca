@@ -28,17 +28,13 @@ jobs:
           cp .github/scripts/pr43164-artifact-smoke.mjs "$RUNNER_TEMP/pr43164-artifact-smoke.mjs"
           git checkout --detach c755a1d37134d78b7cae31e4aea03564b296d976
           git rev-parse HEAD
-      - uses: actions/setup-node@v6
+      - name: Install repository toolchain and dependencies
+        uses: ./.github/actions/install-node-dependencies
         with:
-          node-version: '24'
-          package-manager-cache: false
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 12.14.0
-      - name: Install pinned dependencies in disposable runner
-        run: |
-          pnpm install --frozen-lockfile --ignore-scripts
-          node node_modules/bun/install.js
+          cache-pnpm-store: 'false'
+          cache-pnpm-verification: 'false'
+          native-runtime: node
+          persist-native-cache: 'false'
       - name: Targeted runtime and packaging regressions
         run: >-
           pnpm test
