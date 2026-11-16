@@ -26,6 +26,7 @@ jobs:
       - name: Preserve isolated smoke harness and select exact PR commit
         run: |
           cp .github/scripts/pr43164-artifact-smoke.mjs "$RUNNER_TEMP/pr43164-artifact-smoke.mjs"
+          git fetch --no-tags --depth=1 origin c755a1d37134d78b7cae31e4aea03564b296d976
           git checkout --detach c755a1d37134d78b7cae31e4aea03564b296d976
           git rev-parse HEAD
       - name: Install repository toolchain and dependencies
